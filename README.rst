@@ -38,17 +38,13 @@ Cite
 -----------
 
 If you use this work please cite our paper.
-```
 
 
-@inproceedings{naylor2017nuclei,
-  title={Nuclei segmentation in histopathology images using deep neural networks},
-  author={Naylor, Peter and La{\'e}, Marick and Reyal, Fabien and Walter, Thomas},
-  booktitle={Biomedical Imaging (ISBI 2017), 2017 IEEE 14th International Symposium on},
-  pages={933--936},
-  year={2017},
-  organization={IEEE}
-}
-
-
-```
+    @inproceedings{naylor2017nuclei,
+      title={Nuclei segmentation in histopathology images using deep neural networks},
+      author={Naylor, Peter and La{\'e}, Marick and Reyal, Fabien and Walter, Thomas},
+      booktitle={Biomedical Imaging (ISBI 2017), 2017 IEEE 14th International Symposium on},
+      pages={933--936},
+      year={2017},
+      organization={IEEE}
+    }
