@@ -39,6 +39,8 @@ Cite
 
 If you use this work please cite our paper.
 ```
+
+
 @inproceedings{naylor2017nuclei,
   title={Nuclei segmentation in histopathology images using deep neural networks},
   author={Naylor, Peter and La{\'e}, Marick and Reyal, Fabien and Walter, Thomas},
@@ -47,5 +49,6 @@ If you use this work please cite our paper.
   year={2017},
   organization={IEEE}
 }
+
 
 ```
