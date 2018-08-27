@@ -21,7 +21,13 @@ You can also install it directly from the Python Package Index with this command
 
 Example
 --------------
-TO DO: a small notebook.
+```python
+>>> from dynamic_watershed import post_process
+>>> from skimage.io import imread
+>>> probability_image = imread('example.png')
+>>> p1, p2 = 7, 0.5
+>>> result_segmentation = post_process(probability_image, p1, thresh=p2)
+```
 
 Licence
 --------
@@ -39,6 +45,7 @@ Cite
 
 If you use this work please cite our paper.
 
+BibTeX: 
 ```
   @inproceedings{naylor2017nuclei,
     title={Nuclei segmentation in histopathology images using deep neural networks},
@@ -50,25 +57,3 @@ If you use this work please cite our paper.
     }
 ```
 
-```sh
-$ cd dillinger
-$ npm install -d
-$ node app
-```
-
-#### *Try your first TensorFlow program*
-```shell
-$ python
-```
-```python
->>> import tensorflow as tf
->>> hello = tf.constant('Hello, TensorFlow!')
->>> sess = tf.Session()
->>> sess.run(hello)
-'Hello, TensorFlow!'
->>> a = tf.constant(10)
->>> b = tf.constant(32)
->>> sess.run(a + b)
-42
->>> sess.close()
-```
