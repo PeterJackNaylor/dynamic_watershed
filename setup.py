@@ -21,7 +21,7 @@ setup(name='dynamic_watershed',
       keywords="",
       packages= find_packages(exclude='docs'),
       classifiers=(
-          "Programming Language :: Python :: 2 or 3",
+          "Programming Language :: Python",
           "License :: OSI Approved :: MIT License",
           "Operating System :: OS Independent",
       ),
