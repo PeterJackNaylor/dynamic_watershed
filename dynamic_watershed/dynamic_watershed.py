@@ -49,7 +49,13 @@ def all_split_process(p_img, lamb, p_thresh=0.5, uint8=True):
 
 def arrange_label(mat):
     """
-    Arrange label image as to effectively put background to 0.
+    Given a labelled 2D matrix, returns a labelled 2D matrix
+    where it tries to se the background to 0.
+    Args:
+        mat: 2-D labelled matrix.
+    Returns:
+        A labelled matrix. Where each connected component is 
+        assigned an integer and the background is assigned 0.
     """
     val, counts = np.unique(mat, return_counts=True)
     background_val = val[np.argmax(counts)]
@@ -61,7 +67,17 @@ def arrange_label(mat):
 
 def assign_wsl(label_res, wsl):
     """
-    Assigns wsl to biggest connect component in the bbox around the wsl.
+    Assigns the watershed line to the biggest connect component 
+    in the bounding box around the proposed watershed line.
+    Args:
+        label_res: 2-D labelled matrix on which we have just applied a
+        watershed split.
+        wsl: The watershed lines that were obtained by applying the
+        watershed split
+    Returns:
+        A labelled integer matrix. Where each watershed line is assigned to one
+        of the existing connected components. In particular to the biggest 
+        connected component.
     """
     wsl_lb = label(wsl)
     objects = regionprops(wsl_lb)
@@ -81,6 +97,13 @@ def assign_wsl(label_res, wsl):
 def find_maxima(img, uint8=True, mask=None):
     """
     Finds all local maxima from 2D image.
+    Args:
+        img: 2-D labelled matrix.
+        uint8: If the image is in 'uint8' format
+        mask: Whether or not to apply a mask
+    Returns:
+        Returns a 2-D matrix where local maxima have the value of 1
+        and the rest are set 0.
     """
     recons = h_reconstruction_erosion(img, 1, uint8)
     res = recons - img
@@ -88,19 +111,25 @@ def find_maxima(img, uint8=True, mask=None):
         res[mask == 0] = 0
     return res
 
-def generate_wsl(ws_):
+def generate_wsl(labelled_mat):
     """
     Generates watershed line that correspond to areas of
     touching objects.
+    Args:
+        labelled_mat: 2-D labelled matrix.
+    Returns:
+        a 2-D labelled matrix where each integer component
+        cooresponds to a seperation between two objects. 
+        0 refers to the backrgound.
     """
     se_3 = square(3)
-    ero = ws_.copy()
+    ero = labelled_mat.copy()
     ero[ero == 0] = ero.max() + 1
     ero = erosion(ero, se_3)
-    ero[ws_ == 0] = 0
+    ero[labelled_mat == 0] = 0
 
-    grad = dilation(ws_, se_3) - ero
-    grad[ws_ == 0] = 0
+    grad = dilation(labelled_mat, se_3) - ero
+    grad[labelled_mat == 0] = 0
     grad[grad > 0] = 255
     grad = grad.astype(np.uint8)
     return grad
@@ -108,6 +137,14 @@ def generate_wsl(ws_):
 def h_reconstruction_erosion(prob_img, h_value, uint8=True):
     """
     Performs a H minimma reconstruction via an erosion method.
+    Args:
+        prob_img: 2-D matrix on which to perform a h-reconstruction
+                  with an erosion
+        h_value: the parameter h for the h-reconstruction.
+        uint8: If the image is in 'uint8' format
+    Returns:
+        A labelled matrix. Where each connected component is 
+        assigned an integer and the background is assigned 0.
     """
     h_img = np.zeros_like(prob_img) + h_value
     if uint8:
@@ -120,8 +157,13 @@ def h_reconstruction_erosion(prob_img, h_value, uint8=True):
 
 def invert_prob(img, uint8=True):
     """
-    Prepares the prob image for post-processing, it can convert from
-    float -> to uint8 and it can inverse it if needed.
+    Prepares the prob image for post-processing. We have to invert 
+    the values in img. Minimums become and maximas and vice versa.
+    It can convert from float -> to uint8 if needed.
+    Args:
+        img: 2-D matrix.
+    Returns:
+        The inversion of matrix img. 
     """
     if uint8:
         img = img_as_ubyte(img)
@@ -132,9 +174,22 @@ def invert_prob(img, uint8=True):
 
 def post_process(prob_image, param=7, thresh=0.5):
     """
-    Perform DynamicWatershedAlias with some default parameters.
+    Main function of packages. Applies the splitting algorithm 
+    described in 'Segmentation of Nuclei in Histopathology Images by deep 
+    regression of the distance map'. This algorithm is essentially a dynamic 
+    watershed and can be applied to float/integer 2-D matrix.
+    Args:
+        prob_image: 2-D matrix.
+        param: value to apply the h-reconstruction. This parameter
+               can be seen as an error margin one wishes to impose
+               on the split.
+        thresh: value with respect to which we threshold prob_image
+                into 2, background and forground. 
+    Returns:
+        A segmented map. Where each connected component is 
+        assigned an integer.
     """
-    if 'int' in prob_image.dtype:
+    if 'int' in str(prob_image.dtype):
         segmentation_mask = all_split_process(prob_image, param, thresh)
     else:        
         segmentation_mask = all_split_process(prob_image, param, thresh, uint8=False)
