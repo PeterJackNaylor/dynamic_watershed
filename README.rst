@@ -49,3 +49,10 @@ If you use this work please cite our paper.
     organization={IEEE}
     }
 ```
+
+```sh
+$ cd dillinger
+$ npm install -d
+$ node app
+```
+
