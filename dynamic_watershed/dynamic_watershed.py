@@ -17,7 +17,7 @@ from skimage.feature import peak_local_max
 
 from scipy.ndimage.morphology import distance_transform_edt
 
-def all_split_process(p_img, lamb, p_thresh=0.5, uint8=True):
+def all_split_process(p_img, lamb, p_thresh=0.5):
     """
     Function that applies the post processing split to an
     given image.
@@ -32,11 +32,6 @@ def all_split_process(p_img, lamb, p_thresh=0.5, uint8=True):
         p_thresh: Threshold to cut p_img. All pixel of p_img
                   that are above p_thresh are considered positive. 
                   An integer or float.
-        uint8: Whether the image is of type integer.
-               True or False, a boolean. For the function to work
-               properly p_img's type must be compatible with this
-               parameter.
-
     Returns:
         A segmented map. Where each connected component is 
         assigned an integer.
@@ -47,7 +42,7 @@ def all_split_process(p_img, lamb, p_thresh=0.5, uint8=True):
     if lamb > p_thresh:
         # we must re add the vanishing object because of lamb-reconstruction
         h_recons = solve_vanishing_objects(probs_inv, h_recons, lamb, p_thresh)
-    markers_probs_inv = find_maxima(h_recons, mask=b_img, thresh=p_thresh)
+    markers_probs_inv = find_maxima(h_recons, mask=b_img)
     markers_probs_inv = label(markers_probs_inv)
     ws_labels = watershed(h_recons, markers_probs_inv, mask=b_img)
     result = arrange_label(ws_labels)
@@ -100,12 +95,11 @@ def assign_wsl(label_res, wsl):
         label_res[wsl_lb == obj.label] = best_lab
     return label_res
 
-def find_maxima(img, thresh=0.5, mask=None):
+def find_maxima(img, mask=None):
     """
     Finds all local maxima from 2D image.
     Args:
         img: 2-D labelled matrix.
-        uint8: If the image is in 'uint8' format
         mask: Whether or not to apply a mask
     Returns:
         Returns a 2-D matrix where local maxima have the value of 1
@@ -114,7 +108,8 @@ def find_maxima(img, thresh=0.5, mask=None):
     res = peak_local_max(invert_prob(img.copy()), min_distance=8,
                          indices=False)
     res = res.astype(int)
-    res[mask == 0] = 0
+    if mask is not None:
+        res[mask == 0] = 0
     return res
 
 def generate_wsl(labelled_mat):
@@ -147,7 +142,6 @@ def h_reconstruction_erosion(prob_img, h_value):
         prob_img: 2-D matrix on which to perform a h-reconstruction
                   with an erosion
         h_value: the parameter h for the h-reconstruction.
-        uint8: If the image is in 'uint8' format
     Returns:
         A labelled matrix. Where each connected component is 
         assigned an integer and the background is assigned 0.
@@ -192,7 +186,7 @@ def post_process(prob_image, param=1, thresh=0.5):
         prob_image = prob_image.astype("int64")
         segmentation_mask = all_split_process(prob_image, param, thresh)
     else:        
-        segmentation_mask = all_split_process(prob_image, param, thresh, uint8=False)
+        segmentation_mask = all_split_process(prob_image, param, thresh)
     return segmentation_mask
 
 def solve_vanishing_objects(img, param_reconstruct, param, thresh):
