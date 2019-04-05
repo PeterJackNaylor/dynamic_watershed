@@ -19,7 +19,7 @@ setup(name='dynamic_watershed',
       url="https://github.com/PeterJackNaylor/dynamic_watershed.git",
       license='see LICENSE.txt',
       keywords="",
-      packages=["numpy", "scikit-image"],
+      packages=[],
       classifiers=(
           "Programming Language :: Python",
           "License :: OSI Approved :: MIT License",

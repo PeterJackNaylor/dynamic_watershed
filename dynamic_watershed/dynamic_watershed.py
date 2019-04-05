@@ -9,10 +9,13 @@ watershed. The main function implemented here is post_process.
 """
 
 import numpy as np
-from skimage import img_as_ubyte
+
 from skimage.morphology import dilation, erosion
 from skimage.morphology import reconstruction, square, watershed
 from skimage.measure import label, regionprops
+from skimage.feature import peak_local_max
+
+from scipy.ndimage.morphology import distance_transform_edt
 
 def all_split_process(p_img, lamb, p_thresh=0.5, uint8=True):
     """
@@ -39,9 +42,12 @@ def all_split_process(p_img, lamb, p_thresh=0.5, uint8=True):
         assigned an integer.
     """
     b_img = (p_img > p_thresh) + 0
-    probs_inv = invert_prob(p_img, uint8)
-    h_recons = h_reconstruction_erosion(probs_inv, lamb, uint8)
-    markers_probs_inv = find_maxima(h_recons, mask=b_img, uint8=uint8)
+    probs_inv = invert_prob(p_img)
+    h_recons = h_reconstruction_erosion(probs_inv, lamb)
+    if lamb > p_thresh:
+        # we must re add the vanishing object because of lamb-reconstruction
+        h_recons = solve_vanishing_objects(probs_inv, h_recons, lamb, p_thresh)
+    markers_probs_inv = find_maxima(h_recons, mask=b_img, thresh=p_thresh)
     markers_probs_inv = label(markers_probs_inv)
     ws_labels = watershed(h_recons, markers_probs_inv, mask=b_img)
     result = arrange_label(ws_labels)
@@ -94,7 +100,7 @@ def assign_wsl(label_res, wsl):
         label_res[wsl_lb == obj.label] = best_lab
     return label_res
 
-def find_maxima(img, uint8=True, mask=None):
+def find_maxima(img, thresh=0.5, mask=None):
     """
     Finds all local maxima from 2D image.
     Args:
@@ -105,10 +111,10 @@ def find_maxima(img, uint8=True, mask=None):
         Returns a 2-D matrix where local maxima have the value of 1
         and the rest are set 0.
     """
-    recons = h_reconstruction_erosion(img, 1, uint8)
-    res = recons - img
-    if mask is not None:
-        res[mask == 0] = 0
+    res = peak_local_max(invert_prob(img.copy()), min_distance=8,
+                         indices=False)
+    res = res.astype(int)
+    res[mask == 0] = 0
     return res
 
 def generate_wsl(labelled_mat):
@@ -134,7 +140,7 @@ def generate_wsl(labelled_mat):
     grad = grad.astype(np.uint8)
     return grad
 
-def h_reconstruction_erosion(prob_img, h_value, uint8=True):
+def h_reconstruction_erosion(prob_img, h_value):
     """
     Performs a H minimma reconstruction via an erosion method.
     Args:
@@ -146,16 +152,13 @@ def h_reconstruction_erosion(prob_img, h_value, uint8=True):
         A labelled matrix. Where each connected component is 
         assigned an integer and the background is assigned 0.
     """
-    h_img = np.zeros_like(prob_img) + h_value
-    if uint8:
-        h_img = np.minimum(h_img, 255 - prob_img) 
-    seed = prob_img + h_img
+    seed = prob_img.copy() + h_value
     mask = prob_img
     recons = reconstruction(seed, mask, method='erosion')
     recons = recons.astype(prob_img.dtype)
     return recons
 
-def invert_prob(img, uint8=True):
+def invert_prob(img):
     """
     Prepares the prob image for post-processing. We have to invert 
     the values in img. Minimums become and maximas and vice versa.
@@ -165,14 +168,10 @@ def invert_prob(img, uint8=True):
     Returns:
         The inversion of matrix img. 
     """
-    if uint8:
-        img = img_as_ubyte(img)
-        img = 255 - img
-    else:
-        img = img.max() - img
+    img = img.max() - img
     return img
 
-def post_process(prob_image, param=7, thresh=0.5):
+def post_process(prob_image, param=1, thresh=0.5):
     """
     Main function of packages. Applies the splitting algorithm 
     described in 'Segmentation of Nuclei in Histopathology Images by deep 
@@ -190,7 +189,37 @@ def post_process(prob_image, param=7, thresh=0.5):
         assigned an integer.
     """
     if 'int' in str(prob_image.dtype):
+        prob_image = prob_image.astype("int64")
         segmentation_mask = all_split_process(prob_image, param, thresh)
     else:        
         segmentation_mask = all_split_process(prob_image, param, thresh, uint8=False)
     return segmentation_mask
+
+def solve_vanishing_objects(img, param_reconstruct, param, thresh):
+    """
+    Some connected components vanish because of the param-reconstruction even 
+    tho some pixel values are above the thresh value. Indeed these connected 
+    components are induced by a probability map where the regional maxima
+    is between param and thresh. This function solves this vanishing problem
+    by-introducing these connected components in the param_reconstruct image.
+    Args:
+        img: 2-D matrix.
+        param_reconstruct: 2-D matrix which is the param-reconstruction of 
+                           img.
+        param: value to apply the h-reconstruction. This parameter
+               can be seen as an error margin one wishes to impose
+               on the split.
+        thresh: value with respect to which we threshold prob_image
+                into 2, background and forground. 
+    Returns:
+        A 2-D matrix which is essentially the corrected param_reconstruct
+    """
+    img_c = invert_prob(img.copy())
+    img_c[param_reconstruct != param_reconstruct.max()] = 0
+    img_c[img_c < thresh] = 0
+    img_c[img_c > thresh] = 1
+    img_c = distance_transform_edt(img_c).astype(int)
+    param_reconstruct = invert_prob(param_reconstruct)
+    param_reconstruct = param_reconstruct + img_c
+    param_reconstruct = invert_prob(param_reconstruct)
+    return param_reconstruct
