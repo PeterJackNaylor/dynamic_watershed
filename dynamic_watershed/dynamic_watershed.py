@@ -105,7 +105,7 @@ def find_maxima(img, mask=None):
         Returns a 2-D matrix where local maxima have the value of 1
         and the rest are set 0.
     """
-    res = peak_local_max(invert_prob(img.copy()), min_distance=8,
+    res = peak_local_max(invert_prob(img.copy()), min_distance=4,
                          indices=False)
     res = res.astype(int)
     if mask is not None:
