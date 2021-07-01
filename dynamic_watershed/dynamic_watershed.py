@@ -11,7 +11,8 @@ watershed. The main function implemented here is post_process.
 import numpy as np
 
 from skimage.morphology import dilation, erosion
-from skimage.morphology import reconstruction, square, watershed
+from skimage.morphology import reconstruction, square
+from skimage.segmentation import watershed
 from skimage.measure import label, regionprops
 from skimage.feature import peak_local_max
 
